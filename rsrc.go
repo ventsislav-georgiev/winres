@@ -55,10 +55,10 @@ func (rs *ResourceSet) write(w io.Writer) ([]int, error) {
 
 // order orders identifiers in the whole resource set.
 func (rs *ResourceSet) order(s *state) {
-	s.orderedKeys = make([]Identifier, 0, len(rs.types))
-	for ident, te := range rs.types {
+	s.orderedKeys = make([]Identifier, 0, len(rs.Types))
+	for ident, te := range rs.Types {
 		s.orderedKeys = append(s.orderedKeys, ident)
-		te.order()
+		te.Order()
 	}
 
 	// Names in case sensitive ascending order, then IDs in ascending order
@@ -86,12 +86,12 @@ func (rs *ResourceSet) prepare() *state {
 
 	rs.order(s)
 
-	for ident, te := range rs.types {
+	for ident, te := range rs.Types {
 		if name, ok := ident.(Name); ok {
 			typeNameSet[name] = struct{}{}
 			nameSet[name] = struct{}{}
 		}
-		for _, name := range te.orderedKeys[:te.namesCount] {
+		for _, name := range te.OrderedKeys[:te.NamesCount] {
 			nameSet[name.(Name)] = struct{}{}
 		}
 	}
@@ -127,13 +127,13 @@ func (rs *ResourceSet) writeTypeDir(w io.Writer, s *state) error {
 		if err := writeDirectoryEntry(w, s.nameOffset[ident.(Name)], s.offset, true, true); err != nil {
 			return err
 		}
-		s.offset += rs.types[ident].size()
+		s.offset += rs.Types[ident].size()
 	}
 	for _, ident := range s.orderedKeys[s.namesCount:] {
 		if err := writeDirectoryEntry(w, int(ident.(ID)), s.offset, false, true); err != nil {
 			return err
 		}
-		s.offset += rs.types[ident].size()
+		s.offset += rs.Types[ident].size()
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func (rs *ResourceSet) writeTypeDir(w io.Writer, s *state) error {
 // writeResDirs is where we write the resource directory (2nd level: type->resource)
 func (rs *ResourceSet) writeResDirs(w io.Writer, s *state) error {
 	for _, tid := range s.orderedKeys {
-		if err := rs.types[tid].write(w, s); err != nil {
+		if err := rs.Types[tid].write(w, s); err != nil {
 			return err
 		}
 	}
@@ -151,9 +151,9 @@ func (rs *ResourceSet) writeResDirs(w io.Writer, s *state) error {
 // writeLangDirs is where we write the localized resource directory (3rd level: type->resource->locale)
 func (rs *ResourceSet) writeLangDirs(w io.Writer, s *state) error {
 	for _, tid := range s.orderedKeys {
-		te := rs.types[tid]
-		for _, ident := range te.orderedKeys {
-			if err := te.resources[ident].write(w, s); err != nil {
+		te := rs.Types[tid]
+		for _, ident := range te.OrderedKeys {
+			if err := te.Resources[ident].write(w, s); err != nil {
 				return err
 			}
 		}
@@ -164,11 +164,11 @@ func (rs *ResourceSet) writeLangDirs(w io.Writer, s *state) error {
 // writeDataIndex is where we write the resource data index (4th level: type->resource->locale->data address)
 func (rs *ResourceSet) writeDataIndex(w io.Writer, s *state) error {
 	for _, tid := range s.orderedKeys {
-		te := rs.types[tid]
-		for _, rid := range te.orderedKeys {
-			re := te.resources[rid]
-			for _, lcid := range re.orderedKeys {
-				if err := re.data[lcid].write(w, s); err != nil {
+		te := rs.Types[tid]
+		for _, rid := range te.OrderedKeys {
+			re := te.Resources[rid]
+			for _, lcid := range re.OrderedKeys {
+				if err := re.Data[lcid].write(w, s); err != nil {
 					return err
 				}
 			}
@@ -180,11 +180,11 @@ func (rs *ResourceSet) writeDataIndex(w io.Writer, s *state) error {
 // writeData is where we write the actual resource data (6th part, 5th being names)
 func (rs *ResourceSet) writeData(w io.Writer, s *state) error {
 	for _, tid := range s.orderedKeys {
-		te := rs.types[tid]
-		for _, rid := range te.orderedKeys {
-			re := te.resources[rid]
-			for _, lcid := range re.orderedKeys {
-				if err := re.data[lcid].writeData(w); err != nil {
+		te := rs.Types[tid]
+		for _, rid := range te.OrderedKeys {
+			re := te.Resources[rid]
+			for _, lcid := range re.OrderedKeys {
+				if err := re.Data[lcid].writeData(w); err != nil {
 					return err
 				}
 			}
@@ -197,9 +197,9 @@ func (rs *ResourceSet) writeData(w io.Writer, s *state) error {
 func (rs *ResourceSet) fullSize() int {
 	s := rs.prepare()
 	sz := rs.dirSize() + len(s.namesData)*2
-	for _, te := range rs.types {
-		for _, re := range te.resources {
-			for _, de := range re.data {
+	for _, te := range rs.Types {
+		for _, re := range te.Resources {
+			for _, de := range re.Data {
 				sz += de.paddedDataSize()
 			}
 		}
@@ -209,11 +209,11 @@ func (rs *ResourceSet) fullSize() int {
 
 // dirSize returns the size of the rsrc section's directory.
 func (rs *ResourceSet) dirSize() int {
-	sz := sizeOfDirTable + len(rs.types)*sizeOfDirEntry
-	for _, te := range rs.types {
+	sz := sizeOfDirTable + len(rs.Types)*sizeOfDirEntry
+	for _, te := range rs.Types {
 		sz += te.size()
-		for _, re := range te.resources {
-			sz += re.size() + len(re.data)*sizeOfDataEntry
+		for _, re := range te.Resources {
+			sz += re.size() + len(re.Data)*sizeOfDataEntry
 		}
 	}
 	return sz
@@ -222,105 +222,105 @@ func (rs *ResourceSet) dirSize() int {
 // numDataEntries returns the number of resource data entries to be written into the rsrc section.
 func (rs *ResourceSet) numDataEntries() int {
 	var n int
-	for _, te := range rs.types {
-		for _, re := range te.resources {
-			n += len(re.data)
+	for _, te := range rs.Types {
+		for _, re := range te.Resources {
+			n += len(re.Data)
 		}
 	}
 	return n
 }
 
-type typeEntry struct {
-	resources   map[Identifier]*resourceEntry
-	orderedKeys []Identifier
-	namesCount  int
+type TypeEntry struct {
+	Resources   map[Identifier]*ResourceEntry
+	OrderedKeys []Identifier
+	NamesCount  int
 }
 
 // size returns the size of the entry's directory table
-func (te *typeEntry) size() int {
-	return sizeOfDirTable + len(te.resources)*sizeOfDirEntry
+func (te *TypeEntry) size() int {
+	return sizeOfDirTable + len(te.Resources)*sizeOfDirEntry
 }
 
-// order orders ids and names following the specification, and saves them in orderedKeys.
-// It calls resourceEntry.order() too, for each resource entry it owns.
-func (te *typeEntry) order() {
-	if te.orderedKeys != nil {
+// Order orders ids and names following the specification, and saves them in orderedKeys.
+// It calls resourceEntry.Order() too, for each resource entry it owns.
+func (te *TypeEntry) Order() {
+	if te.OrderedKeys != nil {
 		return
 	}
 
-	te.orderedKeys = make([]Identifier, 0, len(te.resources))
-	for ident, re := range te.resources {
-		te.orderedKeys = append(te.orderedKeys, ident)
+	te.OrderedKeys = make([]Identifier, 0, len(te.Resources))
+	for ident, re := range te.Resources {
+		te.OrderedKeys = append(te.OrderedKeys, ident)
 
 		// Order LCIDs in every resource
 		re.order()
 	}
 
 	// Names in case sensitive ascending order, then IDs in ascending order
-	sort.Slice(te.orderedKeys, func(i, j int) bool {
-		return te.orderedKeys[i].lessThan(te.orderedKeys[j])
+	sort.Slice(te.OrderedKeys, func(i, j int) bool {
+		return te.OrderedKeys[i].lessThan(te.OrderedKeys[j])
 	})
 
 	// Count Names by searching the first ID
-	te.namesCount = sort.Search(len(te.orderedKeys), func(i int) bool {
-		_, ok := te.orderedKeys[i].(ID)
+	te.NamesCount = sort.Search(len(te.OrderedKeys), func(i int) bool {
+		_, ok := te.OrderedKeys[i].(ID)
 		return ok
 	})
 }
 
 // write writes the entry's directory table
-func (te *typeEntry) write(w io.Writer, s *state) error {
-	if err := writeDirectoryTable(w, te.namesCount, len(te.orderedKeys)-te.namesCount); err != nil {
+func (te *TypeEntry) write(w io.Writer, s *state) error {
+	if err := writeDirectoryTable(w, te.NamesCount, len(te.OrderedKeys)-te.NamesCount); err != nil {
 		return err
 	}
-	for _, ident := range te.orderedKeys[:te.namesCount] {
+	for _, ident := range te.OrderedKeys[:te.NamesCount] {
 		if err := writeDirectoryEntry(w, s.nameOffset[ident.(Name)], s.offset, true, true); err != nil {
 			return err
 		}
-		s.offset += te.resources[ident].size()
+		s.offset += te.Resources[ident].size()
 	}
-	for _, ident := range te.orderedKeys[te.namesCount:] {
+	for _, ident := range te.OrderedKeys[te.NamesCount:] {
 		if err := writeDirectoryEntry(w, int(ident.(ID)), s.offset, false, true); err != nil {
 			return err
 		}
-		s.offset += te.resources[ident].size()
+		s.offset += te.Resources[ident].size()
 	}
 	return nil
 }
 
-type resourceEntry struct {
-	data        map[ID]*dataEntry
-	orderedKeys []ID
+type ResourceEntry struct {
+	Data        map[ID]*DataEntry
+	OrderedKeys []ID
 }
 
 // size returns the size of the entry's directory table
-func (re *resourceEntry) size() int {
-	return sizeOfDirTable + len(re.data)*sizeOfDirEntry
+func (re *ResourceEntry) size() int {
+	return sizeOfDirTable + len(re.Data)*sizeOfDirEntry
 }
 
 // order orders LCIDs and saves them in orderedKeys.
-func (re *resourceEntry) order() {
-	if re.orderedKeys != nil {
+func (re *ResourceEntry) order() {
+	if re.OrderedKeys != nil {
 		return
 	}
 
-	re.orderedKeys = make([]ID, 0, len(re.data))
-	for id := range re.data {
-		re.orderedKeys = append(re.orderedKeys, id)
+	re.OrderedKeys = make([]ID, 0, len(re.Data))
+	for id := range re.Data {
+		re.OrderedKeys = append(re.OrderedKeys, id)
 	}
 
 	// LCIDs in ascending order
-	sort.Slice(re.orderedKeys, func(i, j int) bool {
-		return re.orderedKeys[i].lessThan(re.orderedKeys[j])
+	sort.Slice(re.OrderedKeys, func(i, j int) bool {
+		return re.OrderedKeys[i].lessThan(re.OrderedKeys[j])
 	})
 }
 
 // write writes the entry's directory table
-func (re *resourceEntry) write(w io.Writer, s *state) error {
-	if err := writeDirectoryTable(w, 0, len(re.data)); err != nil {
+func (re *ResourceEntry) write(w io.Writer, s *state) error {
+	if err := writeDirectoryTable(w, 0, len(re.Data)); err != nil {
 		return err
 	}
-	for _, lcid := range re.orderedKeys {
+	for _, lcid := range re.OrderedKeys {
 		s.relocAddr = append(s.relocAddr, s.offset)
 		if err := writeDirectoryEntry(w, int(lcid), s.offset, false, false); err != nil {
 			return err
@@ -330,8 +330,8 @@ func (re *resourceEntry) write(w io.Writer, s *state) error {
 	return nil
 }
 
-type dataEntry struct {
-	data []byte
+type DataEntry struct {
+	Data []byte
 }
 
 func alignData(offset int) int {
@@ -339,12 +339,12 @@ func alignData(offset int) int {
 }
 
 // paddedDataSize returns the room taken by data, including some padding at the end.
-func (de *dataEntry) paddedDataSize() int {
-	return alignData(len(de.data))
+func (de *DataEntry) paddedDataSize() int {
+	return alignData(len(de.Data))
 }
 
-func (de *dataEntry) write(w io.Writer, s *state) error {
-	if err := writeDataEntry(w, s.offset, len(de.data)); err != nil {
+func (de *DataEntry) write(w io.Writer, s *state) error {
+	if err := writeDataEntry(w, s.offset, len(de.Data)); err != nil {
 		return err
 	}
 	// Everything must be aligned, so we may skip a few byte when necessary after each resource data
@@ -352,8 +352,8 @@ func (de *dataEntry) write(w io.Writer, s *state) error {
 	return nil
 }
 
-func (de *dataEntry) writeData(w io.Writer) error {
-	size, err := w.Write(de.data)
+func (de *DataEntry) writeData(w io.Writer) error {
+	size, err := w.Write(de.Data)
 	if err != nil {
 		return err
 	}

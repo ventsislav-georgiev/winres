@@ -54,7 +54,7 @@ const (
 //
 // Create an empty ResourceSet and call Set methods to add resources, then WriteObject to produce a COFF object file.
 type ResourceSet struct {
-	types        map[Identifier]*typeEntry
+	Types        map[Identifier]*TypeEntry
 	lastIconID   uint16
 	lastCursorID uint16
 }
@@ -123,11 +123,11 @@ func (rs *ResourceSet) Walk(f func(typeID, resID Identifier, langID uint16, data
 	s := &state{}
 	rs.order(s)
 	for _, tk := range s.orderedKeys {
-		te := rs.types[tk]
-		for _, rk := range te.orderedKeys {
-			re := te.resources[rk]
-			for _, dk := range re.orderedKeys {
-				if !f(tk, rk, uint16(dk), re.data[dk].data) {
+		te := rs.Types[tk]
+		for _, rk := range te.OrderedKeys {
+			re := te.Resources[rk]
+			for _, dk := range re.OrderedKeys {
+				if !f(tk, rk, uint16(dk), re.Data[dk].Data) {
 					return
 				}
 			}
@@ -141,15 +141,15 @@ func (rs *ResourceSet) Walk(f func(typeID, resID Identifier, langID uint16, data
 //
 // If you modify the set during a call to Walk, behaviour is undefined.
 func (rs *ResourceSet) WalkType(typeID Identifier, f func(resID Identifier, langID uint16, data []byte) bool) {
-	te := rs.types[typeID]
+	te := rs.Types[typeID]
 	if te == nil {
 		return
 	}
-	te.order()
-	for _, rk := range te.orderedKeys {
-		re := te.resources[rk]
-		for _, dk := range re.orderedKeys {
-			if !f(rk, uint16(dk), re.data[dk].data) {
+	te.Order()
+	for _, rk := range te.OrderedKeys {
+		re := te.Resources[rk]
+		for _, dk := range re.OrderedKeys {
+			if !f(rk, uint16(dk), re.Data[dk].Data) {
 				return
 			}
 		}
@@ -160,28 +160,28 @@ func (rs *ResourceSet) WalkType(typeID Identifier, f func(resID Identifier, lang
 //
 // Returns nil if the resource was not found.
 func (rs *ResourceSet) Get(typeID, resID Identifier, langID uint16) []byte {
-	te := rs.types[typeID]
+	te := rs.Types[typeID]
 	if te == nil {
 		return nil
 	}
 
-	re := te.resources[resID]
+	re := te.Resources[resID]
 	if re == nil {
 		return nil
 	}
 
-	de := re.data[ID(langID)]
+	de := re.Data[ID(langID)]
 	if de == nil {
 		return nil
 	}
 
-	return de.data
+	return de.Data
 }
 
 // set is the only function that may create/modify entries in the ResourceSet
 func (rs *ResourceSet) set(typeID Identifier, resID Identifier, langID uint16, data []byte) {
-	if rs.types == nil {
-		rs.types = make(map[Identifier]*typeEntry)
+	if rs.Types == nil {
+		rs.Types = make(map[Identifier]*TypeEntry)
 	}
 
 	if data == nil {
@@ -190,21 +190,21 @@ func (rs *ResourceSet) set(typeID Identifier, resID Identifier, langID uint16, d
 		return
 	}
 
-	te := rs.types[typeID]
+	te := rs.Types[typeID]
 	if te == nil {
-		te = &typeEntry{
-			resources: make(map[Identifier]*resourceEntry),
+		te = &TypeEntry{
+			Resources: make(map[Identifier]*ResourceEntry),
 		}
-		rs.types[typeID] = te
+		rs.Types[typeID] = te
 	}
 
-	re := te.resources[resID]
+	re := te.Resources[resID]
 	if re == nil {
-		te.orderedKeys = nil
-		re = &resourceEntry{
-			data: make(map[ID]*dataEntry),
+		te.OrderedKeys = nil
+		re = &ResourceEntry{
+			Data: make(map[ID]*DataEntry),
 		}
-		te.resources[resID] = re
+		te.Resources[resID] = re
 	}
 
 	if typeID == RT_ICON {
@@ -217,42 +217,42 @@ func (rs *ResourceSet) set(typeID Identifier, resID Identifier, langID uint16, d
 		}
 	}
 
-	de := re.data[ID(langID)]
+	de := re.Data[ID(langID)]
 	if de == nil {
-		re.orderedKeys = nil
-		de = &dataEntry{}
-		re.data[ID(langID)] = de
+		re.OrderedKeys = nil
+		de = &DataEntry{}
+		re.Data[ID(langID)] = de
 	}
 
-	de.data = data
+	de.Data = data
 }
 
 func (rs *ResourceSet) delete(typeID Identifier, resID Identifier, langID uint16) {
-	te := rs.types[typeID]
+	te := rs.Types[typeID]
 	if te == nil {
 		return
 	}
 
-	re := te.resources[resID]
+	re := te.Resources[resID]
 	if re == nil {
 		return
 	}
 
-	delete(re.data, ID(langID))
-	re.orderedKeys = nil
+	delete(re.Data, ID(langID))
+	re.OrderedKeys = nil
 
-	if len(re.data) > 0 {
+	if len(re.Data) > 0 {
 		return
 	}
 
-	delete(te.resources, resID)
-	te.orderedKeys = nil
+	delete(te.Resources, resID)
+	te.OrderedKeys = nil
 
-	if len(te.resources) > 0 {
+	if len(te.Resources) > 0 {
 		return
 	}
 
-	delete(rs.types, typeID)
+	delete(rs.Types, typeID)
 }
 
 // firstLang finds the first language ID of a resource.
@@ -264,23 +264,23 @@ func (rs *ResourceSet) delete(typeID Identifier, resID Identifier, langID uint16
 // UpdateResource sorts resources just like winres does, so we may assume
 // the first language in the file should be the lowest LCID.
 func (rs *ResourceSet) firstLang(typeID, resID Identifier) uint16 {
-	te := rs.types[typeID]
+	te := rs.Types[typeID]
 	if te == nil {
 		return 0
 	}
 
-	re := te.resources[resID]
+	re := te.Resources[resID]
 	if re == nil {
 		return 0
 	}
 
-	if len(re.data) == 0 {
+	if len(re.Data) == 0 {
 		return 0
 	}
 
 	re.order()
 
-	return uint16(re.orderedKeys[0])
+	return uint16(re.OrderedKeys[0])
 }
 
 // LoadFromEXE loads the .rsrc section of the executable and returns a ResourceSet

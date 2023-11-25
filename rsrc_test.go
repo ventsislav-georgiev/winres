@@ -80,9 +80,9 @@ func Test_dataEntry_writeData(t *testing.T) {
 	}
 
 	for i := 0; i <= 16; i++ {
-		de := dataEntry{data: make([]byte, i)}
+		de := DataEntry{Data: make([]byte, i)}
 		for j := 0; j < i; j++ {
-			de.data[j] = byte(j + 1)
+			de.Data[j] = byte(j + 1)
 		}
 		buf := &bytes.Buffer{}
 

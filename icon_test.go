@@ -25,9 +25,9 @@ func TestLoadICO(t *testing.T) {
 
 	cursor.order()
 
-	expected := []iconImage{
+	expected := []IconImage{
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      0,
 				Height:     0,
 				ColorCount: 0,
@@ -37,7 +37,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      48,
 				Height:     48,
 				ColorCount: 0,
@@ -47,7 +47,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      32,
 				Height:     32,
 				ColorCount: 0,
@@ -57,7 +57,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      16,
 				Height:     16,
 				ColorCount: 0,
@@ -67,7 +67,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      0,
 				Height:     0,
 				ColorCount: 0,
@@ -77,7 +77,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      48,
 				Height:     48,
 				ColorCount: 0,
@@ -87,7 +87,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      32,
 				Height:     32,
 				ColorCount: 0,
@@ -97,7 +97,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      16,
 				Height:     16,
 				ColorCount: 0,
@@ -107,7 +107,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      0,
 				Height:     0,
 				ColorCount: 16,
@@ -117,7 +117,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      48,
 				Height:     48,
 				ColorCount: 16,
@@ -127,7 +127,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      32,
 				Height:     32,
 				ColorCount: 16,
@@ -137,7 +137,7 @@ func TestLoadICO(t *testing.T) {
 			},
 		},
 		{
-			info: iconInfo{
+			Info: IconInfo{
 				Width:      16,
 				Height:     16,
 				ColorCount: 16,
@@ -149,8 +149,8 @@ func TestLoadICO(t *testing.T) {
 	}
 
 	for i := range expected {
-		if !reflect.DeepEqual(cursor.images[i].info, expected[i].info) {
-			t.Errorf("%s - image %d: expected %v got %v", t.Name(), i, expected[i].info, cursor.images[i].info)
+		if !reflect.DeepEqual(cursor.Images[i].Info, expected[i].Info) {
+			t.Errorf("%s - image %d: expected %v got %v", t.Name(), i, expected[i].Info, cursor.Images[i].Info)
 		}
 	}
 }
@@ -427,7 +427,7 @@ func TestResourceSet_SetIcon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(rs.lastIconID) != len(icon.images) {
+	if int(rs.lastIconID) != len(icon.Images) {
 		t.Fail()
 	}
 

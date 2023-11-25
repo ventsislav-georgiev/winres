@@ -318,7 +318,7 @@ func Test_ResourceSet_set(t *testing.T) {
 		t.Fail()
 	}
 	rs.set(ID(1), ID(2), 3, nil)
-	if len(rs.types) != 0 {
+	if len(rs.Types) != 0 {
 		t.Fail()
 	}
 	rs.set(Name("A"), Name("B"), 1, []byte{})
@@ -335,11 +335,11 @@ func Test_ResourceSet_set(t *testing.T) {
 	if rs.Count() != 1 {
 		t.Fail()
 	}
-	if _, exists := rs.types[Name("A")].resources[Name("B")]; exists {
+	if _, exists := rs.Types[Name("A")].Resources[Name("B")]; exists {
 		t.Fail()
 	}
 	rs.set(Name("A"), Name("b"), 1, nil)
-	if len(rs.types) != 0 {
+	if len(rs.Types) != 0 {
 		t.Fail()
 	}
 	rs.set(RT_ICON, ID(4), 1, []byte{})
@@ -364,7 +364,7 @@ func Test_ResourceSet_set(t *testing.T) {
 	rs.set(RT_CURSOR, ID(2), 1, nil)
 	rs.set(RT_CURSOR, ID(1), 1, nil)
 	rs.set(RT_CURSOR, Name("420"), 3, nil)
-	if len(rs.types) != 1 {
+	if len(rs.Types) != 1 {
 		t.Fail()
 	}
 }
@@ -373,18 +373,18 @@ func Test_ResourceSet_firstLang(t *testing.T) {
 	rs := ResourceSet{}
 
 	rs.set(ID(1), ID(2), 3, []byte{1})
-	if rs.types[ID(1)].resources[ID(2)].orderedKeys != nil {
+	if rs.Types[ID(1)].Resources[ID(2)].OrderedKeys != nil {
 		t.Fail()
 	}
 	rs.order(&state{})
-	if len(rs.types[ID(1)].resources[ID(2)].orderedKeys) != 1 {
+	if len(rs.Types[ID(1)].Resources[ID(2)].OrderedKeys) != 1 {
 		t.Fail()
 	}
 	if rs.firstLang(ID(1), ID(2)) != 3 {
 		t.Fail()
 	}
 	rs.set(ID(1), ID(2), 2, []byte{2})
-	if rs.types[ID(1)].resources[ID(2)].orderedKeys != nil {
+	if rs.Types[ID(1)].Resources[ID(2)].OrderedKeys != nil {
 		t.Fail()
 	}
 	rs.set(ID(1), ID(2), 1, []byte{3})
@@ -406,8 +406,8 @@ func Test_ResourceSet_firstLang(t *testing.T) {
 		t.Fail()
 	}
 	// Make up impossible case
-	delete(rs.types[ID(1)].resources[ID(2)].data, 3)
-	delete(rs.types[ID(1)].resources[ID(2)].data, 4)
+	delete(rs.Types[ID(1)].Resources[ID(2)].Data, 3)
+	delete(rs.Types[ID(1)].Resources[ID(2)].Data, 4)
 	if rs.firstLang(ID(1), ID(2)) != 0 {
 		t.Fail()
 	}
@@ -796,7 +796,7 @@ func TestResourceSet_LoadFromEXE_Err(t *testing.T) {
 
 	b = loadBinary(t, "vs0.exe")
 	rs, err = LoadFromEXE(bytes.NewReader(b))
-	if err == nil || rs == nil || rs.types != nil || err.Error() != errNoRSRC {
+	if err == nil || rs == nil || rs.Types != nil || err.Error() != errNoRSRC {
 		t.Error(err)
 	}
 

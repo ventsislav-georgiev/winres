@@ -19,7 +19,7 @@ import (
 // This structure must only be created by constructors:
 // NewIconFromImages, NewIconFromResizedImage, LoadICO
 type Icon struct {
-	images []iconImage
+	Images []IconImage
 }
 
 var DefaultIconSizes = []int{256, 64, 48, 32, 16}
@@ -89,9 +89,9 @@ func LoadICO(ico io.ReadSeeker) (*Icon, error) {
 		if err := readFull(ico, img); err != nil {
 			return nil, err
 		}
-		icon.images = append(icon.images, iconImage{
-			info:  e.iconInfo,
-			image: img,
+		icon.Images = append(icon.Images, IconImage{
+			Info:  e.IconInfo,
+			Image: img,
 		})
 	}
 
@@ -102,7 +102,7 @@ func LoadICO(ico io.ReadSeeker) (*Icon, error) {
 func (icon *Icon) SaveICO(ico io.Writer) error {
 	err := binary.Write(ico, binary.LittleEndian, &iconDirHeader{
 		Type:  1,
-		Count: uint16(len(icon.images)),
+		Count: uint16(len(icon.Images)),
 	})
 	if err != nil {
 		return err
@@ -110,25 +110,25 @@ func (icon *Icon) SaveICO(ico io.Writer) error {
 
 	var (
 		pos    = sizeOfIconDirHeader
-		hdrLen = sizeOfIconDirHeader + len(icon.images)*sizeOfIconFileDirEntry
+		hdrLen = sizeOfIconDirHeader + len(icon.Images)*sizeOfIconFileDirEntry
 		offset = hdrLen
 	)
 
 	icon.order()
-	for i := range icon.images {
+	for i := range icon.Images {
 		err = binary.Write(ico, binary.LittleEndian, &iconFileDirEntry{
-			iconInfo:    icon.images[i].info,
+			IconInfo:    icon.Images[i].Info,
 			ImageOffset: uint32(offset),
 		})
 		if err != nil {
 			return err
 		}
-		offset += len(icon.images[i].image)
+		offset += len(icon.Images[i].Image)
 		pos += sizeOfIconFileDirEntry
 	}
 
-	for i := range icon.images {
-		_, err = ico.Write(icon.images[i].image)
+	for i := range icon.Images {
+		_, err = ico.Write(icon.Images[i].Image)
 		if err != nil {
 			return err
 		}
@@ -159,20 +159,20 @@ func (rs *ResourceSet) SetIconTranslation(resID Identifier, langID uint16, icon 
 	b := &bytes.Buffer{}
 	binary.Write(b, binary.LittleEndian, iconDirHeader{
 		Type:  1,
-		Count: uint16(len(icon.images)),
+		Count: uint16(len(icon.Images)),
 	})
 
 	icon.order()
 
-	for _, img := range icon.images {
+	for _, img := range icon.Images {
 		id := rs.lastIconID + 1
 
 		binary.Write(b, binary.LittleEndian, iconResDirEntry{
-			iconInfo: img.info,
+			IconInfo: img.Info,
 			Id:       id,
 		})
 
-		if err := rs.Set(RT_ICON, ID(id), LCIDNeutral, img.image); err != nil {
+		if err := rs.Set(RT_ICON, ID(id), LCIDNeutral, img.Image); err != nil {
 			return err
 		}
 	}
@@ -209,9 +209,9 @@ func (rs *ResourceSet) GetIconTranslation(resID Identifier, langID uint16) (*Ico
 		if img == nil {
 			return nil, errors.New(errIconMissing)
 		}
-		icon.images = append(icon.images, iconImage{
-			info:  entry.iconInfo,
-			image: img,
+		icon.Images = append(icon.Images, IconImage{
+			Info:  entry.IconInfo,
+			Image: img,
 		})
 	}
 
@@ -238,7 +238,7 @@ const sizeOfIconDirHeader = 6
 
 // iconFileDirEntry is the binary format of an icon directory entry, in an ICO file.
 type iconFileDirEntry struct {
-	iconInfo
+	IconInfo
 	ImageOffset uint32
 }
 
@@ -246,12 +246,12 @@ const sizeOfIconFileDirEntry = 16
 
 // iconResDirEntry is the binary format of an icon directory entry, in an RT_GROUP_ICON resource.
 type iconResDirEntry struct {
-	iconInfo
+	IconInfo
 	Id uint16
 }
 
-// iconInfo is the common part of iconResDirEntry and iconFileDirEntry.
-type iconInfo struct {
+// IconInfo is the common part of iconResDirEntry and iconFileDirEntry.
+type IconInfo struct {
 	Width      uint8
 	Height     uint8
 	ColorCount uint8
@@ -261,9 +261,9 @@ type iconInfo struct {
 	BytesInRes uint32
 }
 
-type iconImage struct {
-	info  iconInfo
-	image []byte
+type IconImage struct {
+	Info  IconInfo
+	Image []byte
 }
 
 // This makes a testing error reporting possible
@@ -285,8 +285,8 @@ func (icon *Icon) addImage(img image.Image) error {
 		return err
 	}
 
-	icon.images = append(icon.images, iconImage{
-		info: iconInfo{
+	icon.Images = append(icon.Images, IconImage{
+		Info: IconInfo{
 			Width:      uint8(bounds.Size().X), // 0 means 256
 			Height:     uint8(bounds.Size().Y), // 0 means 256
 			ColorCount: 0,                      // should be defined as 1 << BitCount only if BitCount < 8
@@ -295,7 +295,7 @@ func (icon *Icon) addImage(img image.Image) error {
 			BitCount:   32,
 			BytesInRes: uint32(buf.Len()),
 		},
-		image: buf.Bytes(),
+		Image: buf.Bytes(),
 	})
 
 	return nil
@@ -303,8 +303,8 @@ func (icon *Icon) addImage(img image.Image) error {
 
 func (icon *Icon) order() {
 	// Sort images by descending size and quality
-	sort.SliceStable(icon.images, func(i, j int) bool {
-		img1, img2 := &icon.images[i].info, &icon.images[j].info
+	sort.SliceStable(icon.Images, func(i, j int) bool {
+		img1, img2 := &icon.Images[i].Info, &icon.Images[j].Info
 		return img1.BitCount > img2.BitCount ||
 			img1.BitCount == img2.BitCount && int(img1.Width-1)+1 > int(img2.Width-1)+1
 	})
